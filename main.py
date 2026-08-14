@@ -113,8 +113,9 @@ class App:
                 if self.kb_active: self.kb.draw(img)
                 for h in hands:
                     if h['type'] == 'Right':
-                        # Display role
-                        cv2.putText(img, "Mouse Control", (h['lmList'][0][0], h['lmList'][0][1]-20),
+                        # Display role and Debug Distances
+                        d_8_12 = int(self.tracker.findDistance(h['lmList'][8][:2], h['lmList'][12][:2])[0])
+                        cv2.putText(img, f"Mouse (D:{d_8_12})", (h['lmList'][0][0], h['lmList'][0][1]-20),
                                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 1)
                         self.ry = h['lmList'][8][1]
                         self.mouse.update(h, self.tracker)

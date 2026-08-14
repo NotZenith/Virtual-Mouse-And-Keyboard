@@ -18,7 +18,9 @@ class MouseManager:
         # 4: Thumb, 8: Index, 12: Middle, 16: Ring
         
         # Check distances for gestures
-        th = self.cfg.get("CLICK_THRESHOLD")
+        move_th = self.cfg.get("CLICK_THRESHOLD") + 20 
+        click_th = self.cfg.get("CLICK_THRESHOLD")
+        
         d_8_12, _, _ = detector.findDistance(lm[8][:2], lm[12][:2], draw=False)
         d_4_8, _, _ = detector.findDistance(lm[4][:2], lm[8][:2], draw=False)
         d_4_12, _, _ = detector.findDistance(lm[4][:2], lm[12][:2], draw=False)
@@ -27,14 +29,13 @@ class MouseManager:
         curr_time = time.time()
 
         # 1. Scroll Mode: Index + Middle + Ring connected
-        if d_8_12 < th and d_12_16 < th:
+        if d_8_12 < click_th and d_12_16 < click_th:
             if not self.scrolling:
                 self.scrolling = True
                 self.s_start_y = lm[8][1]
             else:
                 diff = lm[8][1] - self.s_start_y
-                if abs(diff) > 30:
-                    # Move Down = Scroll Up, Move Up = Scroll Down
+                if abs(diff) > 20:
                     scroll_dir = 1 if diff > 0 else -1
                     pyautogui.scroll(scroll_dir * self.cfg.get("SCROLL_SPEED"))
             return
@@ -43,25 +44,24 @@ class MouseManager:
 
         # 2. Click Logic (Thumb + finger)
         if curr_time - self.last_click_time > self.click_cooldown:
-            if d_4_8 < th: # Left Click
+            if d_4_8 < click_th: # Left Click
                 pyautogui.click(button='left')
                 self.last_click_time = curr_time
-            elif d_4_12 < th: # Right Click
+            elif d_4_12 < click_th: # Right Click
                 pyautogui.click(button='right')
                 self.last_click_time = curr_time
 
         # 3. Movement Logic: Index + Middle connected
-        if d_8_12 < th:
+        if d_8_12 < move_th:
             lx, ly = lm[8][0], lm[8][1]
-            margin = self.cfg.get("CAM_RECT_MARGIN") + 100 # Tightened for slower feel
+            margin = self.cfg.get("CAM_RECT_MARGIN")
             
-            # Map coordinates with higher smoothing
+            # Map coordinates
             sx = np.interp(lx, (margin, self.cfg.get("WIDTH")-margin), (0, self.sw))
             sy = np.interp(ly, (margin, self.cfg.get("HEIGHT")-margin), (0, self.sh))
             
-            # Use higher smoothing divisor (8 instead of 5)
-            self.px = self.px + (sx - self.px) / (self.cfg.get("SMOOTHING") + 3)
-            self.py = self.py + (sy - self.py) / (self.cfg.get("SMOOTHING") + 3)
+            # Smoothing
+            self.px = self.px + (sx - self.px) / self.cfg.get("SMOOTHING")
+            self.py = self.py + (sy - self.py) / self.cfg.get("SMOOTHING")
             
-            if abs(self.px-sx) > self.cfg.get("MOUSE_DEADZONE") or abs(self.py-sy) > self.cfg.get("MOUSE_DEADZONE"):
-                pyautogui.moveTo(self.px, self.py, _pause=False)
+            pyautogui.moveTo(self.px, self.py, _pause=False)
