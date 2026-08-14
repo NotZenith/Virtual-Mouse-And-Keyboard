@@ -1,9 +1,9 @@
 import cv2
 import numpy as np
-import cvzone
 import config
 from .button import Button
 from pynput.keyboard import Controller
+from utils.ui_utils import draw_rounded_rect, draw_transparent_overlay
 
 class KeyboardManager:
     def __init__(self):
@@ -11,6 +11,8 @@ class KeyboardManager:
         self.buttons = []
         self.final_text = ""
         self.current_hover_btn = None
+        self.last_pressed_btn = None
+        self.press_animation_timer = 0
         self._create_buttons()
 
     def _create_buttons(self):
@@ -21,26 +23,34 @@ class KeyboardManager:
                 self.buttons.append(Button(pos, key, config.BUTTON_SIZE))
 
     def draw_all(self, img):
-        overlay = np.zeros_like(img, np.uint8)
+        # Draw translucent background for the whole keyboard area
+        draw_transparent_overlay(img, (config.START_X - 20, config.START_Y - 20), 
+                                (1020, 320), (20, 20, 20), alpha=0.3, radius=20)
+
         for btn in self.buttons:
             x, y = btn.pos
             w, h = btn.size
-            cvzone.cornerRect(overlay, (x, y, w, h), 20, rt=0, colorC=config.COLOR_CORNER)
-            cv2.rectangle(overlay, btn.pos, (x + w, y + h), config.COLOR_KEYBOARD_BG, cv2.FILLED)
-            cv2.putText(overlay, btn.text, (x + 40, y + 60),
-                        cv2.FONT_HERSHEY_PLAIN, 2, config.COLOR_TEXT, 3)
+            
+            # Animation state logic
+            color = config.COLOR_KEYBOARD_BG
+            if btn == self.current_hover_btn:
+                color = config.COLOR_HOVER
+            if btn == self.last_pressed_btn and self.press_animation_timer > 0:
+                color = config.COLOR_CLICK
+                self.press_animation_timer -= 1
+            
+            draw_rounded_rect(img, btn.pos, btn.size, 15, color, -1)
+            cv2.putText(img, btn.text, (x + 30, y + 55),
+                        cv2.FONT_HERSHEY_DUPLEX, 1, config.COLOR_TEXT, 2)
 
-        out = img.copy()
-        mask = overlay.astype(bool)
-        out[mask] = cv2.addWeighted(img, 0.5, overlay, 0.5, 0)[mask]
-        
+        # Draw final text box with rounded corners
         tx, ty = config.TEXT_BOX_POS
         tw, th = config.TEXT_BOX_SIZE
-        cv2.rectangle(out, (tx, ty), (tx + tw, ty + th), config.COLOR_HOVER, cv2.FILLED)
-        cv2.putText(out, self.final_text, config.TEXT_BOX_TEXT_POS,
-                    cv2.FONT_HERSHEY_PLAIN, 5, config.COLOR_TEXT, 5)
+        draw_transparent_overlay(img, (tx, ty), (tw, th), (30, 30, 30), alpha=0.6, radius=15)
+        cv2.putText(img, self.final_text, config.TEXT_BOX_TEXT_POS,
+                    cv2.FONT_HERSHEY_PLAIN, 4, config.COLOR_TEXT, 3)
         
-        return out
+        return img
 
     def update_hover(self, img, lm_list):
         self.current_hover_btn = None
@@ -53,12 +63,11 @@ class KeyboardManager:
 
             if x < lm_list[8][0] < x + w and y < lm_list[8][1] < y + h:
                 self.current_hover_btn = btn
-                cv2.rectangle(img, (x - 5, y - 5), (x + w + 5, y + h + 5), config.COLOR_HOVER, cv2.FILLED)
-                cv2.putText(img, btn.text, (x + 20, y + 65),
-                            cv2.FONT_HERSHEY_PLAIN, 4, config.COLOR_TEXT, 4)
         return img
 
     def handle_type(self, state):
         if state == 'start' and self.current_hover_btn:
             self.keyboard_controller.press(self.current_hover_btn.text)
             self.final_text += self.current_hover_btn.text
+            self.last_pressed_btn = self.current_hover_btn
+            self.press_animation_timer = 5 # 5 frames of highlight
