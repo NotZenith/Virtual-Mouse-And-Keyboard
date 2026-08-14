@@ -36,8 +36,48 @@ class MouseManager:
         if hand['type'] != 'Right':
             return
 
-        # Always update cursor position unless scrolling (optional, but requested smooth movement)
+        # Always update cursor position unless scrolling
         if not self.is_scrolling:
             self.move_cursor(hand)
         
-        # Gestures will be added in next steps
+        # Get distances for gestures
+        # 4: Thumb tip, 8: Index tip, 12: Middle tip, 20: Pinky tip
+        dist_ti, _, _ = detector.findDistance(4, 8, draw=False)  # Thumb-Index
+        dist_tm, _, _ = detector.findDistance(4, 12, draw=False) # Thumb-Middle
+        dist_tp, _, _ = detector.findDistance(4, 20, draw=False) # Thumb-Pinky
+
+        curr_time = time.time()
+
+        # 1. Scroll Mode (Thumb + Pinky) - Priority
+        if dist_tp < config.SCROLL_THRESHOLD:
+            if not self.is_scrolling:
+                self.is_scrolling = True
+                self.scroll_start_y = hand['lmList'][8][1]
+            else:
+                diff = hand['lmList'][8][1] - self.scroll_start_y
+                if abs(diff) > 20:
+                    scroll_dir = -1 if diff > 0 else 1
+                    pyautogui.scroll(scroll_dir * config.SCROLL_SPEED)
+            return # Exit early in scroll mode
+        else:
+            self.is_scrolling = False
+
+        # 2. Left Click / Drag (Thumb + Middle)
+        if dist_tm < config.CLICK_THRESHOLD:
+            if not self.is_dragging:
+                # One-shot click if released quickly, but here we handle hold for drag
+                if curr_time - self.last_gesture_time > config.GESTURE_COOLDOWN:
+                    pyautogui.mouseDown()
+                    self.is_dragging = True
+                    self.last_gesture_time = curr_time
+        else:
+            if self.is_dragging:
+                pyautogui.mouseUp()
+                self.is_dragging = False
+                self.last_gesture_time = curr_time
+
+        # 3. Right Click (Thumb + Index)
+        if dist_ti < config.CLICK_THRESHOLD:
+            if curr_time - self.last_gesture_time > config.GESTURE_COOLDOWN:
+                pyautogui.rightClick()
+                self.last_gesture_time = curr_time
