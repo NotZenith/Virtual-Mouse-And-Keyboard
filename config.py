@@ -1,11 +1,10 @@
 import pyautogui
+from utils.settings_manager import settings_manager
 
-# Window configuration
-WIDTH = 1280
-HEIGHT = 720
-
-# Hand Tracking configuration
-DETECTION_CONFIDENCE = 0.8
+# Dynamic values from settings_manager
+WIDTH = settings_manager.get("WIDTH")
+HEIGHT = settings_manager.get("HEIGHT")
+DETECTION_CONFIDENCE = settings_manager.get("DETECTION_CONFIDENCE")
 
 # Keyboard Layout
 KEYS = [
@@ -20,44 +19,36 @@ BUTTON_SPACING = 100
 START_X = 50
 START_Y = 50
 
-# Interaction configuration
-CLICK_DISTANCE = 30
-CLICK_SLEEP = 0.15
-
 # Colors (BGR)
-COLOR_KEYBOARD_BG = (255, 0, 255)
+COLOR_KEYBOARD_BG = (40, 40, 40) # Darker, more modern
 COLOR_TEXT = (255, 255, 255)
-COLOR_HOVER = (175, 0, 175)
-COLOR_CLICK = (0, 255, 0)
-COLOR_CORNER = (255, 0, 255)
+COLOR_HOVER = (0, 120, 215) # Windows blue
+COLOR_CLICK = (0, 153, 0)
+COLOR_CORNER = (0, 120, 215)
+COLOR_MODE_TEXT = (0, 255, 255)
 
-# Text Box configuration
+# UI Settings
 TEXT_BOX_POS = (50, 350)
 TEXT_BOX_SIZE = (650, 100)
 TEXT_BOX_TEXT_POS = (60, 430)
+MODE_INDICATOR_POS = (30, 50) # Moved to top left
 
 # Mouse configuration
 SCREEN_WIDTH, SCREEN_HEIGHT = pyautogui.size()
-SMOOTHING = 5
-MOUSE_SPEED = 1.5
-MOUSE_DEADZONE = 5
-GESTURE_COOLDOWN = 0.5
-CLICK_THRESHOLD = 30
-DRAG_THRESHOLD = 30
-SCROLL_THRESHOLD = 40
-SCROLL_SPEED = 20
+SMOOTHING = settings_manager.get("SMOOTHING")
+MOUSE_DEADZONE = settings_manager.get("MOUSE_DEADZONE")
+GESTURE_COOLDOWN = settings_manager.get("GESTURE_COOLDOWN")
+CLICK_THRESHOLD = settings_manager.get("CLICK_THRESHOLD")
+DRAG_THRESHOLD = settings_manager.get("DRAG_THRESHOLD")
+SCROLL_THRESHOLD = settings_manager.get("SCROLL_THRESHOLD")
+SCROLL_SPEED = settings_manager.get("SCROLL_SPEED")
 
-# Region of interest for mouse movement (to allow edge-to-edge coverage)
-# We map a smaller rectangle in the camera feed to the full screen
-CAM_RECT_MARGIN = 150 
+# Region of interest
+CAM_RECT_MARGIN = settings_manager.get("CAM_RECT_MARGIN")
 CAM_RECT_X = (CAM_RECT_MARGIN, WIDTH - CAM_RECT_MARGIN)
 CAM_RECT_Y = (CAM_RECT_MARGIN, HEIGHT - CAM_RECT_MARGIN)
 
-# Clap detection configuration
+# Clap detection
 CLAP_THRESHOLD = 60
-DOUBLE_CLAP_TIME = 0.5 # Seconds
+DOUBLE_CLAP_TIME = 0.5
 CLAP_COOLDOWN = 0.8
-
-# Mode UI configuration
-MODE_INDICATOR_POS = (1000, 50)
-COLOR_MODE_TEXT = (0, 255, 255) # Cyan
