@@ -4,13 +4,13 @@ import cvzone
 import config
 from .button import Button
 from pynput.keyboard import Controller
-from time import sleep
 
 class KeyboardManager:
     def __init__(self):
         self.keyboard_controller = Controller()
         self.buttons = []
         self.final_text = ""
+        self.current_hover_btn = None
         self._create_buttons()
 
     def _create_buttons(self):
@@ -34,7 +34,6 @@ class KeyboardManager:
         mask = overlay.astype(bool)
         out[mask] = cv2.addWeighted(img, 0.5, overlay, 0.5, 0)[mask]
         
-        # Draw final text box
         tx, ty = config.TEXT_BOX_POS
         tw, th = config.TEXT_BOX_SIZE
         cv2.rectangle(out, (tx, ty), (tx + tw, ty + th), config.COLOR_HOVER, cv2.FILLED)
@@ -43,7 +42,8 @@ class KeyboardManager:
         
         return out
 
-    def update(self, img, lm_list, detector):
+    def update_hover(self, img, lm_list):
+        self.current_hover_btn = None
         if not lm_list:
             return img
 
@@ -52,19 +52,13 @@ class KeyboardManager:
             w, h = btn.size
 
             if x < lm_list[8][0] < x + w and y < lm_list[8][1] < y + h:
-                # Hover effect
+                self.current_hover_btn = btn
                 cv2.rectangle(img, (x - 5, y - 5), (x + w + 5, y + h + 5), config.COLOR_HOVER, cv2.FILLED)
                 cv2.putText(img, btn.text, (x + 20, y + 65),
                             cv2.FONT_HERSHEY_PLAIN, 4, config.COLOR_TEXT, 4)
-
-                # Check click (distance between index and middle finger)
-                dist, _, _ = detector.findDistance(8, 12, img)
-                if dist < config.CLICK_DISTANCE:
-                    self.keyboard_controller.press(btn.text)
-                    cv2.rectangle(img, btn.pos, (x + w, y + h), config.COLOR_CLICK, cv2.FILLED)
-                    cv2.putText(img, btn.text, (x + 20, y + 65),
-                                cv2.FONT_HERSHEY_PLAIN, 4, config.COLOR_TEXT, 4)
-                    self.final_text += btn.text
-                    sleep(config.CLICK_SLEEP)
-
         return img
+
+    def handle_type(self, state):
+        if state == 'start' and self.current_hover_btn:
+            self.keyboard_controller.press(self.current_hover_btn.text)
+            self.final_text += self.current_hover_btn.text

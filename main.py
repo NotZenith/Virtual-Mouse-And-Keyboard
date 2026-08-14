@@ -4,60 +4,73 @@ from camera import Camera
 from hand_tracker import HandTracker
 from keyboard.keyboard_manager import KeyboardManager
 from mouse.mouse_manager import MouseManager
-from gestures.clap_detector import ClapDetector
+from gestures.engine import GestureEngine
+from gestures.pinch_gesture import PinchGesture
+from gestures.clap_gesture import DoubleClapGesture
 from utils.logger import logger
 
-def main():
-    logger.info("Starting Virtual Keyboard and Mouse application...")
-    
-    cam = Camera()
-    tracker = HandTracker()
-    kb_manager = KeyboardManager()
-    mouse_manager = MouseManager()
-    clap_detector = ClapDetector()
+class App:
+    def __init__(self):
+        self.cam = Camera()
+        self.tracker = HandTracker()
+        self.kb_manager = KeyboardManager()
+        self.mouse_manager = MouseManager()
+        self.engine = GestureEngine()
+        self.keyboard_mode_active = False
+        self._setup_gestures()
 
-    keyboard_mode_active = False
-
-    while True:
-        img = cam.get_frame()
-        if img is None:
-            break
-
-        # Hand detection
-        hands, img = tracker.find_hands(img)
+    def _setup_gestures(self):
+        # Mode Toggle
+        self.engine.add_gesture(DoubleClapGesture(callback=self.toggle_mode))
         
-        # Check for mode toggle (Double Clap)
-        if clap_detector.detect_double_clap(hands):
-            keyboard_mode_active = not keyboard_mode_active
-            logger.info(f"Keyboard Mode toggled: {keyboard_mode_active}")
+        # Mouse Gestures (Right Hand)
+        self.engine.add_gesture(PinchGesture("Left Click", 12, config.CLICK_THRESHOLD, 
+                                             callback=self.mouse_manager.handle_left_click))
+        self.engine.add_gesture(PinchGesture("Right Click", 8, config.CLICK_THRESHOLD, 
+                                             callback=self.mouse_manager.handle_right_click))
+        self.engine.add_gesture(PinchGesture("Scroll", 20, config.SCROLL_THRESHOLD, 
+                                             callback=lambda state: self.mouse_manager.handle_scroll(state, self.last_right_hand_y)))
 
-        # Keyboard rendering and interaction (if active)
-        if keyboard_mode_active:
-            img = kb_manager.draw_all(img)
+        # Keyboard Gesture (Left Hand)
+        self.engine.add_gesture(PinchGesture("Type", 12, config.CLICK_THRESHOLD, hand_type='Left', 
+                                             callback=self.kb_manager.handle_type))
 
-        # Process each hand
-        for hand in hands:
-            if hand['type'] == 'Right':
-                # Right hand always controls the mouse
-                mouse_manager.update(hand, tracker.detector)
-            else:
-                # Left hand (or any other) controls the keyboard IF active
-                if keyboard_mode_active:
-                    img = kb_manager.update(img, hand['lmList'], tracker.detector)
+    def toggle_mode(self):
+        self.keyboard_mode_active = not self.keyboard_mode_active
+        logger.info(f"Keyboard Mode: {self.keyboard_mode_active}")
 
-        # UI Indicators
-        mode_text = "MODE: KEYBOARD" if keyboard_mode_active else "MODE: MOUSE"
-        cv2.putText(img, mode_text, config.MODE_INDICATOR_POS,
-                    cv2.FONT_HERSHEY_PLAIN, 2, config.COLOR_MODE_TEXT, 2)
+    def run(self):
+        logger.info("Starting Application...")
+        self.last_right_hand_y = 0
 
-        cv2.imshow("Virtual Keyboard & Mouse", img)
-        
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        while True:
+            img = self.cam.get_frame()
+            if img is None: break
 
-    cam.release()
-    cv2.destroyAllWindows()
-    logger.info("Application closed.")
+            hands, img = self.tracker.find_hands(img)
+            
+            # Update gestures for all hands
+            self.engine.update_gestures(hands, self.tracker.detector)
+
+            if self.keyboard_mode_active:
+                img = self.kb_manager.draw_all(img)
+
+            for hand in hands:
+                if hand['type'] == 'Right':
+                    self.last_right_hand_y = hand['lmList'][8][1]
+                    self.mouse_manager.update(hand)
+                elif self.keyboard_mode_active:
+                    img = self.kb_manager.update_hover(img, hand['lmList'])
+
+            mode_text = f"MODE: {'KEYBOARD' if self.keyboard_mode_active else 'MOUSE'}"
+            cv2.putText(img, mode_text, config.MODE_INDICATOR_POS, 
+                        cv2.FONT_HERSHEY_PLAIN, 2, config.COLOR_MODE_TEXT, 2)
+
+            cv2.imshow("Virtual Keyboard & Mouse", img)
+            if cv2.waitKey(1) & 0xFF == ord('q'): break
+
+        self.cam.release()
+        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    main()
+    App().run()
