@@ -23,15 +23,12 @@ class KeyboardManager:
                 self.buttons.append(Button(pos, key, config.BUTTON_SIZE))
 
     def draw_all(self, img):
-        # Draw translucent background for the whole keyboard area
+        # 1. Draw main translucent panel
         draw_transparent_overlay(img, (config.START_X - 20, config.START_Y - 20), 
                                 (1020, 320), (20, 20, 20), alpha=0.3, radius=20)
 
+        # 2. Draw buttons
         for btn in self.buttons:
-            x, y = btn.pos
-            w, h = btn.size
-            
-            # Animation state logic
             color = config.COLOR_KEYBOARD_BG
             if btn == self.current_hover_btn:
                 color = config.COLOR_HOVER
@@ -40,10 +37,10 @@ class KeyboardManager:
                 self.press_animation_timer -= 1
             
             draw_rounded_rect(img, btn.pos, btn.size, 15, color, -1)
-            cv2.putText(img, btn.text, (x + 30, y + 55),
+            cv2.putText(img, btn.text, (btn.pos[0] + 30, btn.pos[1] + 55),
                         cv2.FONT_HERSHEY_DUPLEX, 1, config.COLOR_TEXT, 2)
 
-        # Draw final text box with rounded corners
+        # 3. Draw text output box
         tx, ty = config.TEXT_BOX_POS
         tw, th = config.TEXT_BOX_SIZE
         draw_transparent_overlay(img, (tx, ty), (tw, th), (30, 30, 30), alpha=0.6, radius=15)
@@ -60,9 +57,9 @@ class KeyboardManager:
         for btn in self.buttons:
             x, y = btn.pos
             w, h = btn.size
-
             if x < lm_list[8][0] < x + w and y < lm_list[8][1] < y + h:
                 self.current_hover_btn = btn
+                break # Optimization: stop once found
         return img
 
     def handle_type(self, state):
@@ -70,4 +67,4 @@ class KeyboardManager:
             self.keyboard_controller.press(self.current_hover_btn.text)
             self.final_text += self.current_hover_btn.text
             self.last_pressed_btn = self.current_hover_btn
-            self.press_animation_timer = 5 # 5 frames of highlight
+            self.press_animation_timer = 5
