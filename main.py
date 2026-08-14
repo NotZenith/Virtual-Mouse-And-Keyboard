@@ -110,21 +110,43 @@ class App:
                 for g in self.gestures:
                     if "Clap" in g.name: g.detect(hands)
                     else: [g.detect(h, self.tracker) for h in hands]
+                
                 if self.kb_active: self.kb.draw(img)
-                for h in hands:
-                    # Debug: Show EVERY detected hand's type and distance
-                    d_8_12 = int(self.tracker.findDistance(h['lmList'][8][:2], h['lmList'][12][:2])[0])
-                    label = f"{h['type']} (D:{d_8_12})"
-                    cv2.putText(img, label, (h['lmList'][0][0], h['lmList'][0][1]-20),
-                                cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+                
+                # Debug UI: Thresholds and Distances
+                draw_overlay(img, (20, 280), (350, 200), (30, 30, 30))
+                move_th = cfg.get("CLICK_THRESHOLD") + 30
+                click_th = cfg.get("CLICK_THRESHOLD")
+                draw_text(img, "DEBUG PANEL (MOUSE)", (40, 310), scale=1.0, color=(0, 255, 255))
 
-                    # Allow any hand to control the mouse for now to fix the "not working" issue
-                    # We can restrict it back to 'Right' once we see what the labels are doing
-                    self.ry = h['lmList'][8][1]
-                    self.mouse.update(h, self.tracker)
+                for h in hands:
+                    lm = h['lmList']
+                    # Use 2D distances
+                    d_8_12 = int(self.tracker.findDistance(lm[8][:2], lm[12][:2], draw=False)[0])
+                    d_4_8 = int(self.tracker.findDistance(lm[4][:2], lm[8][:2], draw=False)[0])
+                    d_4_12 = int(self.tracker.findDistance(lm[4][:2], lm[12][:2], draw=False)[0])
+                    
+                    col_m = (0, 255, 0) if d_8_12 < move_th else (255, 255, 255)
+                    draw_text(img, f"Move Dist: {d_8_12} (<{move_th})", (40, 340), scale=1.0, color=col_m)
+                    draw_text(img, f"Click L Dist: {d_4_8} (<{click_th})", (40, 370), scale=1.0)
+                    draw_text(img, f"Click R Dist: {d_4_12} (<{click_th})", (40, 400), scale=1.0)
+                    draw_text(img, f"Hand: {h['type']}", (40, 430), scale=1.0)
+                    draw_text(img, f"Target X,Y: {int(self.mouse.px)}, {int(self.mouse.py)}", (40, 460), scale=1.0)
+
+                    # Hand Map (Skeleton)
+                    for pt in lm:
+                        cv2.circle(img, (pt[0], pt[1]), 5, (255, 255, 255), -1)
+                    
+                    connections = [(0,1),(1,2),(2,3),(3,4),(0,5),(5,6),(6,7),(7,8),(9,10),(10,11),(11,12),(13,14),(14,15),(15,16),(17,18),(18,19),(19,20),(5,9),(9,13),(13,17),(0,17)]
+                    for s, e in connections:
+                        cv2.line(img, (lm[s][0], lm[s][1]), (lm[e][0], lm[e][1]), (0, 255, 0), 2)
+
+                    if h['type'] == 'Right':
+                        self.ry = lm[8][1]
+                        self.mouse.update(h, self.tracker)
                     
                     if self.kb_active and h['type'] == 'Left':
-                        self.kb.update(h['lmList'])
+                        self.kb.update(lm)
 
             curr = time.time(); fps = int(1/(curr-self.prev_t)); self.prev_t = curr
             draw_overlay(img, (20,20), (300, 250), (50,50,50))

@@ -61,7 +61,8 @@ class MouseManager:
             sy = np.interp(ly, (margin, self.cfg.get("HEIGHT")-margin), (0, self.sh))
             
             # Smoothing
-            self.px = self.px + (sx - self.px) / self.cfg.get("SMOOTHING")
-            self.py = self.py + (sy - self.py) / self.cfg.get("SMOOTHING")
+            self.px = self.px + (sx - self.px) / 5
+            self.py = self.py + (sy - self.py) / 5
             
+            # Use direct x, y for immediate testing
             pyautogui.moveTo(self.px, self.py, _pause=False)
