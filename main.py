@@ -98,8 +98,8 @@ class App:
                     cv2.rectangle(img, (w//2-200, h//2+20), (w//2+200, h//2+50), (100,100,100), -1)
                     cv2.rectangle(img, (w//2-200, h//2+20), (w//2-200+int(400*prog), h//2+50), (0,255,0), -1)
                     if prog >= 1.0:
-                        size = (self.tracker.findDistance(hands[0]['lmList'][0], hands[0]['lmList'][9])[0] + 
-                                self.tracker.findDistance(hands[1]['lmList'][0], hands[1]['lmList'][9])[0]) / 2
+                        size = (self.tracker.findDistance(hands[0]['lmList'][0][:2], hands[0]['lmList'][9][:2])[0] + 
+                                self.tracker.findDistance(hands[1]['lmList'][0][:2], hands[1]['lmList'][9][:2])[0]) / 2
                         th = int(30 * (size/110.0))
                         cfg.set("CLICK_THRESHOLD", th); cfg.set("DRAG_THRESHOLD", th)
                         cfg.set("SCROLL_THRESHOLD", int(40*(size/110.0))); cfg.set("IS_CALIBRATED", True)

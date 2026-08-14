@@ -21,7 +21,10 @@ class PinchGesture(Gesture):
 
     def detect(self, hand, detector):
         if hand['type'] != self.h_type: return False
-        dist, _, _ = detector.findDistance(4, self.f_idx, draw=False)
+        # Ensure we use 2D points for distance calculation to avoid unpacking errors
+        p1 = hand['lmList'][4][:2]
+        p2 = hand['lmList'][self.f_idx][:2]
+        dist, _, _ = detector.findDistance(p1, p2, draw=False)
         detected = dist < self.threshold
         if detected and not self.is_active:
             if self.trigger(state='start'): self.is_active = True
