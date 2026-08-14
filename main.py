@@ -13,17 +13,21 @@ from utils.logger import logger
 
 class App:
     def __init__(self):
-        self.cam = Camera()
-        self.tracker = HandTracker()
-        self.kb_manager = KeyboardManager()
-        self.mouse_manager = MouseManager()
-        self.engine = GestureEngine()
-        self.overlay = UIOverlay()
-        self.calibration = CalibrationManager()
-        
-        self.keyboard_mode_active = False
-        self.last_gesture = "None"
-        self._setup_gestures()
+        try:
+            self.cam = Camera()
+            self.tracker = HandTracker()
+            self.kb_manager = KeyboardManager()
+            self.mouse_manager = MouseManager()
+            self.engine = GestureEngine()
+            self.overlay = UIOverlay()
+            self.calibration = CalibrationManager()
+            
+            self.keyboard_mode_active = False
+            self.last_gesture = "None"
+            self._setup_gestures()
+        except Exception as e:
+            logger.error(f"Initialization error: {e}")
+            raise
 
     def _setup_gestures(self):
         # Mode Toggle
@@ -52,42 +56,62 @@ class App:
         logger.info(f"Keyboard Mode: {self.keyboard_mode_active}")
 
     def run(self):
-        logger.info("Starting Application...")
+        logger.info("Application starting. Press 'R' to recalibrate, 'Tab' to switch camera, 'Q' to quit.")
         self.last_right_hand_y = 0
 
         while True:
-            img = self.cam.get_frame()
-            if img is None: break
+            try:
+                img = self.cam.get_frame()
+                if img is None:
+                    logger.warning("Camera stream interrupted. Attempting to reconnect...")
+                    if not self.cam._initialize_camera():
+                        cv2.waitKey(1000)
+                    continue
 
-            hands, img = self.tracker.find_hands(img)
-            
-            if not self.calibration.is_calibrated:
-                progress = self.calibration.get_progress()
-                self.overlay.draw_calibration_progress(img, progress)
-                self.calibration.update(hands, self.tracker.detector)
-            else:
-                self.engine.update_gestures(hands, self.tracker.detector)
+                hands, img = self.tracker.find_hands(img)
+                
+                if not self.calibration.is_calibrated:
+                    progress = self.calibration.get_progress()
+                    self.overlay.draw_calibration_progress(img, progress)
+                    self.calibration.update(hands, self.tracker.detector)
+                else:
+                    self.engine.update_gestures(hands, self.tracker.detector)
 
-                if self.keyboard_mode_active:
-                    img = self.kb_manager.draw_all(img)
+                    if self.keyboard_mode_active:
+                        img = self.kb_manager.draw_all(img)
 
-                for hand in hands:
-                    if hand['type'] == 'Right':
-                        self.last_right_hand_y = hand['lmList'][8][1]
-                        self.mouse_manager.update(hand)
-                    elif self.keyboard_mode_active:
-                        img = self.kb_manager.update_hover(img, hand['lmList'])
+                    for hand in hands:
+                        if hand['type'] == 'Right':
+                            self.last_right_hand_y = hand['lmList'][8][1]
+                            self.mouse_manager.update(hand)
+                        elif self.keyboard_mode_active:
+                            img = self.kb_manager.update_hover(img, hand['lmList'])
 
-            # Draw Modern Dashboard
-            mode = "KEYBOARD" if self.keyboard_mode_active else "MOUSE"
-            status = "CALIBRATED" if self.calibration.is_calibrated else "CALIBRATING"
-            self.overlay.draw(img, mode, status, self.last_gesture)
+                # UI Dashboard
+                mode = "KEYBOARD" if self.keyboard_mode_active else "MOUSE"
+                status = "CALIBRATED" if self.calibration.is_calibrated else "CALIBRATING"
+                self.overlay.draw(img, mode, status, self.last_gesture)
 
-            cv2.imshow("Virtual Control Center", img)
-            if cv2.waitKey(1) & 0xFF == ord('q'): break
+                cv2.imshow("Virtual Control Center", img)
+                
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    break
+                elif key == ord('r'):
+                    self.calibration.start_calibration()
+                elif key == ord('\t'): # Tab key
+                    self.cam.switch_camera()
+
+            except Exception as e:
+                logger.error(f"Runtime error: {e}")
+                break
 
         self.cam.release()
         cv2.destroyAllWindows()
+        logger.info("Application closed.")
 
 if __name__ == "__main__":
-    App().run()
+    try:
+        App().run()
+    except Exception as e:
+        logger.critical(f"Unhandled exception: {e}")
