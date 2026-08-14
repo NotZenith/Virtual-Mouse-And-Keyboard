@@ -112,16 +112,18 @@ class App:
                     else: [g.detect(h, self.tracker) for h in hands]
                 if self.kb_active: self.kb.draw(img)
                 for h in hands:
-                    if h['type'] == 'Right':
-                        # Display role and Debug Distances
-                        d_8_12 = int(self.tracker.findDistance(h['lmList'][8][:2], h['lmList'][12][:2])[0])
-                        cv2.putText(img, f"Mouse (D:{d_8_12})", (h['lmList'][0][0], h['lmList'][0][1]-20),
-                                    cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 1)
-                        self.ry = h['lmList'][8][1]
-                        self.mouse.update(h, self.tracker)
-                    elif self.kb_active:
-                        cv2.putText(img, "Keyboard Control", (h['lmList'][0][0], h['lmList'][0][1]-20),
-                                    cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 255), 1)
+                    # Debug: Show EVERY detected hand's type and distance
+                    d_8_12 = int(self.tracker.findDistance(h['lmList'][8][:2], h['lmList'][12][:2])[0])
+                    label = f"{h['type']} (D:{d_8_12})"
+                    cv2.putText(img, label, (h['lmList'][0][0], h['lmList'][0][1]-20),
+                                cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+
+                    # Allow any hand to control the mouse for now to fix the "not working" issue
+                    # We can restrict it back to 'Right' once we see what the labels are doing
+                    self.ry = h['lmList'][8][1]
+                    self.mouse.update(h, self.tracker)
+                    
+                    if self.kb_active and h['type'] == 'Left':
                         self.kb.update(h['lmList'])
 
             curr = time.time(); fps = int(1/(curr-self.prev_t)); self.prev_t = curr
