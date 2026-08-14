@@ -1,6 +1,6 @@
 # Virtual Control Center
 
-A high-performance virtual keyboard and mouse controller powered by MediaPipe and OpenCV. This project allows you to control your computer using only your hands through a standard webcam.
+A high-performance virtual keyboard and mouse controller powered by MediaPipe and OpenCV. Control your computer using only your hands through a standard webcam.
 
 ## Features
 
@@ -9,11 +9,10 @@ A high-performance virtual keyboard and mouse controller powered by MediaPipe an
   - **Left Click / Drag**: Thumb + Middle finger pinch.
   - **Right Click**: Thumb + Index finger pinch.
   - **Scroll**: Thumb + Pinky pinch (move hand up/down).
-- **Virtual Keyboard**: Modular keyboard with hover effects and animations.
+- **Virtual Keyboard**: Modern keyboard with hover effects and animations.
 - **Clap-to-Toggle**: Double clap to switch between Mouse and Keyboard modes.
 - **Auto-Calibration**: Dynamically adjusts gesture thresholds based on your hand size.
 - **Glassmorphism UI**: Modern dashboard with real-time FPS and status tracking.
-- **Persistent Settings**: Configurations saved automatically in `settings.json`.
 
 ## Installation
 
@@ -44,8 +43,8 @@ A high-performance virtual keyboard and mouse controller powered by MediaPipe an
 
 - Python 3.8+
 - Webcam
-- Requirements listed in `requirements.txt` (OpenCV, MediaPipe, cvzone, pynput, pyautogui)
+- Dependencies: `opencv-python`, `mediapipe`, `cvzone`, `pynput`, `pyautogui`, `numpy`
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
