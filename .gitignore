@@ -1,0 +1,7 @@
+.idea/
+__pycache__/
+*.pyc
+.artifacts/
+implementation_plan.artifact.md
+task.artifact.md
+walkthrough.artifact.md
