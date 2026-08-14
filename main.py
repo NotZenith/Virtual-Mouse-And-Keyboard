@@ -86,7 +86,9 @@ class App:
         while True:
             img = self.cam.get_frame()
             if img is None: break
-            hands, img = self.tracker.findHands(img, draw=False)
+            
+            # Let cvzone handle the mirroring and flip logic automatically
+            hands, img = self.tracker.findHands(img, draw=True, flipType=True) 
             
             if not cfg.get("IS_CALIBRATED"):
                 if len(hands) == 2:
@@ -110,8 +112,16 @@ class App:
                     else: [g.detect(h, self.tracker) for h in hands]
                 if self.kb_active: self.kb.draw(img)
                 for h in hands:
-                    if h['type'] == 'Right': self.ry = h['lmList'][8][1]; self.mouse.update(h)
-                    elif self.kb_active: self.kb.update(h['lmList'])
+                    if h['type'] == 'Right':
+                        # Display role
+                        cv2.putText(img, "Mouse Control", (h['lmList'][0][0], h['lmList'][0][1]-20),
+                                    cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 1)
+                        self.ry = h['lmList'][8][1]
+                        self.mouse.update(h, self.tracker)
+                    elif self.kb_active:
+                        cv2.putText(img, "Keyboard Control", (h['lmList'][0][0], h['lmList'][0][1]-20),
+                                    cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 255), 1)
+                        self.kb.update(h['lmList'])
 
             curr = time.time(); fps = int(1/(curr-self.prev_t)); self.prev_t = curr
             draw_overlay(img, (20,20), (300, 250), (50,50,50))

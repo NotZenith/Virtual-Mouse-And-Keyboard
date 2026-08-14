@@ -1,37 +1,67 @@
 import pyautogui
 import numpy as np
+import time
 
 class MouseManager:
     def __init__(self, config):
         self.cfg = config
         pyautogui.FAILSAFE = False
+        pyautogui.PAUSE = 0
         self.px, self.py = 0, 0
         self.dragging, self.scrolling, self.s_start_y = False, False, 0
         self.sw, self.sh = pyautogui.size()
+        self.last_click_time = 0
+        self.click_cooldown = 0.3
 
-    def update(self, hand):
-        if not self.scrolling:
-            lx, ly = hand['lmList'][8][0], hand['lmList'][8][1]
-            margin = self.cfg.get("CAM_RECT_MARGIN")
+    def update(self, hand, detector):
+        lm = hand['lmList']
+        # 4: Thumb, 8: Index, 12: Middle, 16: Ring
+        
+        # Check distances for gestures
+        th = self.cfg.get("CLICK_THRESHOLD")
+        d_8_12, _, _ = detector.findDistance(lm[8][:2], lm[12][:2], draw=False)
+        d_4_8, _, _ = detector.findDistance(lm[4][:2], lm[8][:2], draw=False)
+        d_4_12, _, _ = detector.findDistance(lm[4][:2], lm[12][:2], draw=False)
+        d_12_16, _, _ = detector.findDistance(lm[12][:2], lm[16][:2], draw=False)
+
+        curr_time = time.time()
+
+        # 1. Scroll Mode: Index + Middle + Ring connected
+        if d_8_12 < th and d_12_16 < th:
+            if not self.scrolling:
+                self.scrolling = True
+                self.s_start_y = lm[8][1]
+            else:
+                diff = lm[8][1] - self.s_start_y
+                if abs(diff) > 30:
+                    # Move Down = Scroll Up, Move Up = Scroll Down
+                    scroll_dir = 1 if diff > 0 else -1
+                    pyautogui.scroll(scroll_dir * self.cfg.get("SCROLL_SPEED"))
+            return
+        else:
+            self.scrolling = False
+
+        # 2. Click Logic (Thumb + finger)
+        if curr_time - self.last_click_time > self.click_cooldown:
+            if d_4_8 < th: # Left Click
+                pyautogui.click(button='left')
+                self.last_click_time = curr_time
+            elif d_4_12 < th: # Right Click
+                pyautogui.click(button='right')
+                self.last_click_time = curr_time
+
+        # 3. Movement Logic: Index + Middle connected
+        if d_8_12 < th:
+            lx, ly = lm[8][0], lm[8][1]
+            margin = self.cfg.get("CAM_RECT_MARGIN") + 100 # Tightened for slower feel
+            
+            # Map coordinates with higher smoothing
             sx = np.interp(lx, (margin, self.cfg.get("WIDTH")-margin), (0, self.sw))
             sy = np.interp(ly, (margin, self.cfg.get("HEIGHT")-margin), (0, self.sh))
-            cx = self.px + (sx - self.px) / self.cfg.get("SMOOTHING")
-            cy = self.py + (sy - self.py) / self.cfg.get("SMOOTHING")
-            if abs(cx-self.px) > self.cfg.get("MOUSE_DEADZONE") or abs(cy-self.py) > self.cfg.get("MOUSE_DEADZONE"):
-                pyautogui.moveTo(self.sw - cx, cy, _pause=False)
-                self.px, self.py = cx, cy
-        else:
-            diff = hand['lmList'][8][1] - self.s_start_y
-            if abs(diff) > 20:
-                pyautogui.scroll((-1 if diff > 0 else 1) * self.cfg.get("SCROLL_SPEED"))
-
-    def on_left(self, state):
-        if state == 'start': pyautogui.mouseDown(); self.dragging = True
-        else: pyautogui.mouseUp(); self.dragging = False
-    
-    def on_right(self, state):
-        if state == 'start': pyautogui.rightClick()
-    
-    def on_scroll(self, state, y=0):
-        if state == 'start': self.scrolling, self.s_start_y = True, y
-        else: self.scrolling = False
+            
+            # Use higher smoothing divisor (8 instead of 5)
+            self.px = self.px + (sx - self.px) / (self.cfg.get("SMOOTHING") + 3)
+            self.py = self.py + (sy - self.py) / (self.cfg.get("SMOOTHING") + 3)
+            
+            if abs(self.px-sx) > self.cfg.get("MOUSE_DEADZONE") or abs(self.py-sy) > self.cfg.get("MOUSE_DEADZONE"):
+                pyautogui.moveTo(self.px, self.py, _pause=False)
