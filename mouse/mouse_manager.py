@@ -22,6 +22,10 @@ class MouseManager:
         x_screen = np.interp(x_raw, config.CAM_RECT_X, (0, config.SCREEN_WIDTH))
         y_screen = np.interp(y_raw, config.CAM_RECT_Y, (0, config.SCREEN_HEIGHT))
 
+        # Acceleration logic (optional but recommended for large screens)
+        # We can amplify the movement if it's fast, but smoothing already helps.
+        # For simplicity, we stick to smooth mapping first.
+
         # Exponential smoothing
         self.curr_x = self.prev_x + (x_screen - self.prev_x) / config.SMOOTHING
         self.curr_y = self.prev_y + (y_screen - self.prev_y) / config.SMOOTHING
