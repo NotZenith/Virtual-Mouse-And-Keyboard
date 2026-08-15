@@ -53,16 +53,20 @@ class MouseManager:
             lx, ly = lm[8][0], lm[8][1]
             margin = self.cfg.get("CAM_RECT_MARGIN")
             
-            # Map coordinates
+            # Map coordinates to screen resolution
             sx = np.interp(lx, (margin, self.cfg.get("WIDTH")-margin), (0, self.sw))
             sy = np.interp(ly, (margin, self.cfg.get("HEIGHT")-margin), (0, self.sh))
             
-            # Smoothing (Divisor of 3 for faster response)
-            self.px = self.px + (sx - self.px) / 3
-            self.py = self.py + (sy - self.py) / 3
+            # Linear Interpolation (Smoothing)
+            self.px = self.px + (sx - self.px) / self.cfg.get("SMOOTHING")
+            self.py = self.py + (sy - self.py) / self.cfg.get("SMOOTHING")
             
-            # Move pointer
+            # Final Safety bounds check
+            self.px = np.clip(self.px, 0, self.sw)
+            self.py = np.clip(self.py, 0, self.sh)
+            
             try:
-                pyautogui.moveTo(int(self.px), int(self.py), _pause=False)
+                # Direct cast to int for coordinates
+                pyautogui.moveTo(int(self.px), int(self.py))
             except Exception:
                 pass
