@@ -134,6 +134,7 @@ class App:
                     draw_text(img, f"Hand: {hand_label} (D:{d_8_12})", (40, 340), scale=1.0, color=col_m)
                     draw_text(img, f"Required < {move_th}", (40, 370), scale=1.0)
                     draw_text(img, f"Target: {int(self.mouse.px)}, {int(self.mouse.py)}", (40, 400), scale=1.0)
+                    draw_text(img, "ACTIVE: MOVING" if d_8_12 < move_th else "IDLE: CONNECT FINGERS", (40, 430), scale=0.8, color=col_m)
                     
                     # Hand Map (Skeleton)
                     for pt in lm:
@@ -141,7 +142,9 @@ class App:
                     
                     connections = [(0,1),(1,2),(2,3),(3,4),(0,5),(5,6),(6,7),(7,8),(9,10),(10,11),(11,12),(13,14),(14,15),(15,16),(17,18),(18,19),(19,20),(5,9),(9,13),(13,17),(0,17)]
                     for s, e in connections:
-                        cv2.line(img, (lm[s][0], lm[s][1]), (lm[e][0], lm[e][1]), (0, 255, 0), 2)
+                        # Highlight movement fingers in Green if active
+                        line_col = (0, 255, 0) if (s in [8, 12] or e in [8, 12]) and d_8_12 < move_th else (200, 200, 200)
+                        cv2.line(img, (lm[s][0], lm[s][1]), (lm[e][0], lm[e][1]), line_col, 2)
 
                     if hand_label == 'Right':
                         self.ry = lm[8][1]
