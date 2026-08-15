@@ -70,10 +70,10 @@ class App:
         self.ry = 0
         self.gestures = [
             DoubleClapGesture(self.toggle_mode),
-            PinchGesture("Left Click", 12, cfg.get("CLICK_THRESHOLD"), callback=lambda s: self.handle_g("Left Click", self.mouse.on_left, s)),
-            PinchGesture("Right Click", 8, cfg.get("CLICK_THRESHOLD"), callback=lambda s: self.handle_g("Right Click", self.mouse.on_right, s)),
+            PinchGesture("Left Click", 8, cfg.get("CLICK_THRESHOLD"), callback=lambda s: self.handle_g("Left Click", self.mouse.on_left, s)),
+            PinchGesture("Right Click", 12, cfg.get("CLICK_THRESHOLD"), callback=lambda s: self.handle_g("Right Click", self.mouse.on_right, s)),
             PinchGesture("Scroll", 20, cfg.get("SCROLL_THRESHOLD"), callback=lambda s: self.handle_g("Scroll", lambda st: self.mouse.on_scroll(st, self.ry), s)),
-            PinchGesture("Type", 12, cfg.get("CLICK_THRESHOLD"), 'Left', lambda s: self.handle_g("Type", self.kb.on_type, s))
+            PinchGesture("Type", 8, cfg.get("CLICK_THRESHOLD"), 'Left', lambda s: self.handle_g("Type", self.kb.on_type, s))
         ]
         self.prev_t = time.time()
 

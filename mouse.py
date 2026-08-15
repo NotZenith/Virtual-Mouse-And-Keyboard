@@ -20,11 +20,7 @@ class MouseManager:
         click_th = self.cfg.get("CLICK_THRESHOLD")
         
         d_8_12, _, _ = detector.findDistance(lm[8][:2], lm[12][:2], draw=False)
-        d_4_8, _, _ = detector.findDistance(lm[4][:2], lm[8][:2], draw=False)
-        d_4_12, _, _ = detector.findDistance(lm[4][:2], lm[12][:2], draw=False)
         d_12_16, _, _ = detector.findDistance(lm[12][:2], lm[16][:2], draw=False)
-
-        curr_time = time.time()
 
         if d_8_12 < click_th and d_12_16 < click_th:
             if not self.scrolling:
@@ -38,15 +34,6 @@ class MouseManager:
             return
         else:
             self.scrolling = False
-
-        # 2. Click Logic (Thumb + finger)
-        if curr_time - self.last_click_time > self.click_cooldown:
-            if d_4_8 < click_th: # Left Click
-                pyautogui.click(button='left')
-                self.last_click_time = curr_time
-            elif d_4_12 < click_th: # Right Click
-                pyautogui.click(button='right')
-                self.last_click_time = curr_time
 
         # 3. Movement Logic: Index + Middle connected
         if d_8_12 < move_th:

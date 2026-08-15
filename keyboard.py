@@ -36,6 +36,10 @@ class KeyboardManager:
 
     def on_type(self, state):
         if state == 'start' and self.hover_btn:
-            self.ctrl.press(self.hover_btn['text'])
-            self.final_text += self.hover_btn['text']
-            self.last_btn, self.anim = self.hover_btn, 5
+            try:
+                # Use tap for cleaner single-key input
+                self.ctrl.tap(self.hover_btn['text'])
+                self.final_text += self.hover_btn['text']
+                self.last_btn, self.anim = self.hover_btn, 5
+            except Exception:
+                pass
