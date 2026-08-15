@@ -15,10 +15,8 @@ class MouseManager:
 
     def update(self, hand, detector):
         lm = hand['lmList']
-        # 4: Thumb, 8: Index, 12: Middle, 16: Ring
-        
-        # Check distances for gestures
-        move_th = self.cfg.get("CLICK_THRESHOLD") + 20 
+
+        move_th = self.cfg.get("CLICK_THRESHOLD") + 40
         click_th = self.cfg.get("CLICK_THRESHOLD")
         
         d_8_12, _, _ = detector.findDistance(lm[8][:2], lm[12][:2], draw=False)
@@ -28,7 +26,6 @@ class MouseManager:
 
         curr_time = time.time()
 
-        # 1. Scroll Mode: Index + Middle + Ring connected
         if d_8_12 < click_th and d_12_16 < click_th:
             if not self.scrolling:
                 self.scrolling = True
@@ -60,9 +57,12 @@ class MouseManager:
             sx = np.interp(lx, (margin, self.cfg.get("WIDTH")-margin), (0, self.sw))
             sy = np.interp(ly, (margin, self.cfg.get("HEIGHT")-margin), (0, self.sh))
             
-            # Smoothing
-            self.px = self.px + (sx - self.px) / 5
-            self.py = self.py + (sy - self.py) / 5
+            # Smoothing (Divisor of 3 for faster response)
+            self.px = self.px + (sx - self.px) / 3
+            self.py = self.py + (sy - self.py) / 3
             
-            # Use direct x, y for immediate testing
-            pyautogui.moveTo(self.px, self.py, _pause=False)
+            # Move pointer
+            try:
+                pyautogui.moveTo(int(self.px), int(self.py), _pause=False)
+            except Exception:
+                pass

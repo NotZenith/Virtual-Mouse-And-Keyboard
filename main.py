@@ -115,24 +115,26 @@ class App:
                 
                 # Debug UI: Thresholds and Distances
                 draw_overlay(img, (20, 280), (350, 200), (30, 30, 30))
-                move_th = cfg.get("CLICK_THRESHOLD") + 30
+                move_th = cfg.get("CLICK_THRESHOLD") + 40
                 click_th = cfg.get("CLICK_THRESHOLD")
                 draw_text(img, "DEBUG PANEL (MOUSE)", (40, 310), scale=1.0, color=(0, 255, 255))
 
                 for h in hands:
                     lm = h['lmList']
                     # Use 2D distances
-                    d_8_12 = int(self.tracker.findDistance(lm[8][:2], lm[12][:2], draw=False)[0])
+                    dist_data = self.tracker.findDistance(lm[8][:2], lm[12][:2], draw=False)
+                    d_8_12 = int(dist_data[0])
                     d_4_8 = int(self.tracker.findDistance(lm[4][:2], lm[8][:2], draw=False)[0])
                     d_4_12 = int(self.tracker.findDistance(lm[4][:2], lm[12][:2], draw=False)[0])
                     
+                    # Determine hand side (Right side of mirror = User's right)
+                    hand_side = "Right" if h['center'][0] > img.shape[1] // 2 else "Left"
+                    
                     col_m = (0, 255, 0) if d_8_12 < move_th else (255, 255, 255)
-                    draw_text(img, f"Move Dist: {d_8_12} (<{move_th})", (40, 340), scale=1.0, color=col_m)
-                    draw_text(img, f"Click L Dist: {d_4_8} (<{click_th})", (40, 370), scale=1.0)
-                    draw_text(img, f"Click R Dist: {d_4_12} (<{click_th})", (40, 400), scale=1.0)
-                    draw_text(img, f"Hand: {h['type']}", (40, 430), scale=1.0)
-                    draw_text(img, f"Target X,Y: {int(self.mouse.px)}, {int(self.mouse.py)}", (40, 460), scale=1.0)
-
+                    draw_text(img, f"Side: {hand_side} (Real: {h['type']})", (40, 340), scale=1.0)
+                    draw_text(img, f"Move Dist: {d_8_12} (<{move_th})", (40, 370), scale=1.0, color=col_m)
+                    draw_text(img, f"Target: {int(self.mouse.px)}, {int(self.mouse.py)}", (40, 400), scale=1.0)
+                    
                     # Hand Map (Skeleton)
                     for pt in lm:
                         cv2.circle(img, (pt[0], pt[1]), 5, (255, 255, 255), -1)
@@ -141,11 +143,11 @@ class App:
                     for s, e in connections:
                         cv2.line(img, (lm[s][0], lm[s][1]), (lm[e][0], lm[e][1]), (0, 255, 0), 2)
 
-                    if h['type'] == 'Right':
+                    # Use position-based side for control logic (more reliable than MP labels)
+                    if hand_side == 'Right':
                         self.ry = lm[8][1]
                         self.mouse.update(h, self.tracker)
-                    
-                    if self.kb_active and h['type'] == 'Left':
+                    elif self.kb_active and hand_side == 'Left':
                         self.kb.update(lm)
 
             curr = time.time(); fps = int(1/(curr-self.prev_t)); self.prev_t = curr
