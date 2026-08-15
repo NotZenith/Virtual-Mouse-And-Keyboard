@@ -127,12 +127,12 @@ class App:
                     d_4_8 = int(self.tracker.findDistance(lm[4][:2], lm[8][:2], draw=False)[0])
                     d_4_12 = int(self.tracker.findDistance(lm[4][:2], lm[12][:2], draw=False)[0])
                     
-                    # Determine hand side (Right side of mirror = User's right)
-                    hand_side = "Right" if h['center'][0] > img.shape[1] // 2 else "Left"
+                    # Use MediaPipe's hand labeling which seems to be working now
+                    hand_label = h['type']
                     
                     col_m = (0, 255, 0) if d_8_12 < move_th else (255, 255, 255)
-                    draw_text(img, f"Side: {hand_side} (Real: {h['type']})", (40, 340), scale=1.0)
-                    draw_text(img, f"Move Dist: {d_8_12} (<{move_th})", (40, 370), scale=1.0, color=col_m)
+                    draw_text(img, f"Hand: {hand_label} (D:{d_8_12})", (40, 340), scale=1.0, color=col_m)
+                    draw_text(img, f"Required < {move_th}", (40, 370), scale=1.0)
                     draw_text(img, f"Target: {int(self.mouse.px)}, {int(self.mouse.py)}", (40, 400), scale=1.0)
                     
                     # Hand Map (Skeleton)
@@ -143,11 +143,10 @@ class App:
                     for s, e in connections:
                         cv2.line(img, (lm[s][0], lm[s][1]), (lm[e][0], lm[e][1]), (0, 255, 0), 2)
 
-                    # Use position-based side for control logic (more reliable than MP labels)
-                    if hand_side == 'Right':
+                    if hand_label == 'Right':
                         self.ry = lm[8][1]
                         self.mouse.update(h, self.tracker)
-                    elif self.kb_active and hand_side == 'Left':
+                    elif self.kb_active and hand_label == 'Left':
                         self.kb.update(lm)
 
             curr = time.time(); fps = int(1/(curr-self.prev_t)); self.prev_t = curr
