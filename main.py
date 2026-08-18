@@ -73,7 +73,8 @@ class App:
             PinchGesture("Left Click", 8, cfg.get("CLICK_THRESHOLD"), callback=lambda s: self.handle_g("Left Click", self.mouse.on_left, s)),
             PinchGesture("Right Click", 12, cfg.get("CLICK_THRESHOLD"), callback=lambda s: self.handle_g("Right Click", self.mouse.on_right, s)),
             PinchGesture("Scroll", 20, cfg.get("SCROLL_THRESHOLD"), callback=lambda s: self.handle_g("Scroll", lambda st: self.mouse.on_scroll(st, self.ry), s)),
-            PinchGesture("Type", 8, cfg.get("CLICK_THRESHOLD"), 'Left', lambda s: self.handle_g("Type", self.kb.on_type, s))
+            # Use a slightly larger threshold for typing to make it easier to trigger
+            PinchGesture("Type", 8, cfg.get("CLICK_THRESHOLD") + 10, 'Left', lambda s: self.handle_g("Type", self.kb.on_type, s))
         ]
         self.prev_t = time.time()
 
@@ -151,6 +152,11 @@ class App:
                         self.mouse.update(h, self.tracker)
                     elif self.kb_active and hand_label == 'Left':
                         self.kb.update(lm)
+                        # Visual feedback for typing pinch
+                        d_type = int(self.tracker.findDistance(lm[4][:2], lm[8][:2], draw=False)[0])
+                        if d_type < (cfg.get("CLICK_THRESHOLD") + 10):
+                            cv2.circle(img, (lm[8][0], lm[8][1]), 15, (0, 255, 0), 2)
+                            draw_text(img, "TYPING", (lm[8][0], lm[8][1]-20), scale=0.8, color=(0, 255, 0))
 
             curr = time.time(); fps = int(1/(curr-self.prev_t)); self.prev_t = curr
             draw_overlay(img, (20,20), (300, 250), (50,50,50))
