@@ -48,3 +48,7 @@ A high-performance virtual keyboard and mouse controller powered by MediaPipe an
 ## License
 
 This project is licensed under the MIT License.
+
+
+## Troubleshooting
+Check the debug panel for distance metrics.
